@@ -1,0 +1,36 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: erp_demo
+      POSTGRES_USER: erpuser
+      POSTGRES_PASSWORD: erppass123
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U erpuser -d erp_demo"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    image: ghcr.io/shripadrayewar/erp-demo-backend:latest
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://erpuser:erppass123@postgres:5432/erp_demo
+      NODE_ENV: production
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    image: ghcr.io/shripadrayewar/erp-demo-frontend:latest
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
